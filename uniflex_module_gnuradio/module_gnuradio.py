@@ -1,16 +1,17 @@
 import os
-import time
-import logging
-import random
-import wishful_upis as upis
-import wishful_framework as wishful_module
-import subprocess
 import pprint
-import xmlrpc.client
+import logging
+import subprocess
 from enum import Enum
-import xml.etree.ElementTree as ET
 from numpy import arange
 from numpy import log10
+import xmlrpc.client
+import xml.etree.ElementTree as ET
+
+import wishful_upis as upis
+from uniflex.core import modules
+
+from generator.rp_combiner import RadioProgramCombiner
 
 # GLOBAL VARIABLES DEFINITION
 
@@ -23,7 +24,6 @@ MAX_UNII_2_middle_band_output_power = 23                                        
 MAX_UNII_2_extended_band_output_power = 23                                      # power limited to 23 dBm in both indoor and outdoor use
 MAX_UNII_3_upper_band_antenna_gain = 23                                         # antenna gain limited to 23 dBi
 
-from generator.rp_combiner import RadioProgramCombiner
 
 __author__ = "A. Zubow"
 __author__ = "F. Di Stolfa"
@@ -40,11 +40,12 @@ class RadioProgramState(Enum):
     PAUSED = 3
     STOPPED = 4
 
+
 """
     Basic GNURadio connector module.
 """
-@wishful_module.build_module
-class GnuRadioModule(wishful_module.AgentModule):
+@modules.build_module
+class GnuRadioModule(modules.AgentModule):
     def __init__(self):
         super(GnuRadioModule, self).__init__()
 
@@ -53,7 +54,7 @@ class GnuRadioModule(wishful_module.AgentModule):
         self.gr_radio_programs = {}
         self.gr_process = None
         self.gr_process_io = None
-        self.gr_radio_programs_path = os.path.join(os.path.expanduser("~"), ".wishful", "radio")
+        self.gr_radio_programs_path = os.path.join(os.path.expanduser("~"), ".uniflex", "radio")
         if not os.path.exists(self.gr_radio_programs_path):
             os.makedirs(self.gr_radio_programs_path)
             self.build_radio_program_dict()
@@ -69,7 +70,7 @@ class GnuRadioModule(wishful_module.AgentModule):
         self.log.debug('initialized ...')
 
 
-    @wishful_module.bind_function(upis.radio.add_program)
+    @modules.bind_function(upis.radio.add_program)
     def add_program(self, **kwargs):
         """ Serialize radio program to local repository """
 
@@ -89,7 +90,7 @@ class GnuRadioModule(wishful_module.AgentModule):
         self.build_radio_program_dict()
 
 
-    @wishful_module.bind_function(upis.radio.merge_programs)
+    @modules.bind_function(upis.radio.merge_programs)
     def merge_programs(self, **kwargs):
         '''
             Given a set of Gnuradio programs (described as GRC flowgraph) this program combines all
@@ -118,7 +119,7 @@ class GnuRadioModule(wishful_module.AgentModule):
         return rp_fname
 
 
-    @wishful_module.bind_function(upis.radio.switch_program)
+    @modules.bind_function(upis.radio.switch_program)
     def switch_program(self, target_program_name, **kwargs):
         '''
             Run-time control of meta radio program which allows very fast switching from
@@ -151,7 +152,7 @@ class GnuRadioModule(wishful_module.AgentModule):
         getattr(proxy, "set_session_var")(init_session_value)
 
 
-    @wishful_module.bind_function(upis.radio.remove_program)
+    @modules.bind_function(upis.radio.remove_program)
     def remove_program(self, **kwargs):
         """ Remove radio program from local repository """
 
@@ -163,7 +164,7 @@ class GnuRadioModule(wishful_module.AgentModule):
             os.remove(os.path.join(self.gr_radio_programs_path, grc_radio_program_name + '.grc'))
 
 
-    @wishful_module.bind_function(upis.radio.set_active)
+    @modules.bind_function(upis.radio.set_active)
     def set_active(self, **kwargs):
 
         # params
@@ -209,7 +210,7 @@ class GnuRadioModule(wishful_module.AgentModule):
             self.log.warn('Please deactive old radio program before activating a new one.')
 
 
-    @wishful_module.bind_function(upis.radio.set_inactive)
+    @modules.bind_function(upis.radio.set_inactive)
     def set_inactive(self, **kwargs):
 
         pause_rp =  bool(kwargs['do_pause'])
@@ -240,7 +241,7 @@ class GnuRadioModule(wishful_module.AgentModule):
             self.log.warn("no running or paused radio program; ignore command")
 
 
-    @wishful_module.bind_function(upis.radio.set_parameter_lower_layer)
+    @modules.bind_function(upis.radio.set_parameter_lower_layer)
     def gnuradio_set_vars(self, **kwargs):
         if self.gr_state == RadioProgramState.RUNNING or self.gr_state == RadioProgramState.PAUSED:
             self.init_proxy()
@@ -253,7 +254,7 @@ class GnuRadioModule(wishful_module.AgentModule):
             self.log.warn("no running or paused radio program; ignore command")
 
 
-    @wishful_module.bind_function(upis.radio.get_parameter_lower_layer)
+    @modules.bind_function(upis.radio.get_parameter_lower_layer)
     def gnuradio_get_vars(self, **kwargs):
         if self.gr_state == RadioProgramState.RUNNING or self.gr_state == RadioProgramState.PAUSED:
             rv = {}
@@ -321,7 +322,7 @@ class SecureGnuRadioModule(GnuRadioModule):
         self.log = logging.getLogger('SecureGnuRadioModule')
 
 
-    @wishful_module.bind_function(upis.radio.set_active)
+    @modules.bind_function(upis.radio.set_active)
     def set_active(self, **kwargs):
 
         grc_radio_program_name = kwargs['grc_radio_program_name']
@@ -385,7 +386,7 @@ class SecureGnuRadioModule(GnuRadioModule):
 
 
 
-    @wishful_module.bind_function(upis.radio.set_inactive)
+    @modules.bind_function(upis.radio.set_inactive)
     def set_inactive(self, **kwargs):
         pass
      #TO COMPLETE
@@ -393,7 +394,7 @@ class SecureGnuRadioModule(GnuRadioModule):
 
 
 
-    @wishful_module.bind_function(upis.radio.set_parameter_lower_layer)
+    @modules.bind_function(upis.radio.set_parameter_lower_layer)
     def gnuradio_set_vars(self, **kwargs):
 
         if self.gr_state == RadioProgramState.RUNNING or self.gr_state == RadioProgramState.PAUSED:
@@ -424,7 +425,7 @@ class SecureGnuRadioModule(GnuRadioModule):
             self.log.warn("no running or paused radio program; ignore command")
             return None
 
-    @wishful_module.bind_function(upis.radio.get_parameter_lower_layer)
+    @modules.bind_function(upis.radio.get_parameter_lower_layer)
     def gnuradio_get_vars(self, **kwargs):
         gvals={}
         if self.gr_state == RadioProgramState.RUNNING or self.gr_state == RadioProgramState.PAUSED:

@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
-import xml.etree.ElementTree as etree
-import string
-from ast import literal_eval as make_tuple
-import filecmp
-import logging
 import os
+import logging
+import xml.etree.ElementTree as etree
+from ast import literal_eval as make_tuple
 
 '''
     Given a set of Gnuradio programs (described as GRC flowgraph) this program combines all
@@ -33,18 +31,16 @@ class RadioProgramCombiner():
         self.gen_proto_dict_fname = 'meta_rp_proto_dict.txt'
         self.gen_proto_fields_fname = 'meta_rp_fields.txt'
 
-
     def add_radio_program(self, proto_prefix, proto_grc_file_name):
         self.radio_programs[proto_prefix] = os.path.join(self.gr_radio_programs_path, proto_grc_file_name)
 
-
     def get_proto_idx(self, target_proto):
         for protocol_it, proto_prefix in enumerate(self.radio_programs):
-            if target_proto == proto_prefix.replace('_', ''): #self.radio_programs[proto_prefix]:
+            if target_proto == proto_prefix.replace('_', ''):
+                # self.radio_programs[proto_prefix]
                 return protocol_it
 
         return None
-
 
     def generate(self):
         """ generate meta radio program """
@@ -180,7 +176,6 @@ class RadioProgramCombiner():
     def _get_num_protocols(self):
         return len(self.radio_programs)
 
-
     def _update_selector_and_sink_socket(self, base_tree):
 
         num_protocols = self._get_num_protocols()
@@ -205,7 +200,6 @@ class RadioProgramCombiner():
                     param_key = param.find("key")
                     if param_key.text == 'id':
                         self.common_blocks_socket_pdu_id = param_val.text
-
 
     def _rename_all_variables(self, prefix, tree, coord_y_offset):
         root = tree.getroot()
@@ -234,11 +228,10 @@ class RadioProgramCombiner():
 
         return vars_dict
 
-
     def _rename_all_references(self, root, old_id, new_id):
         # replace all reference in blocks
         for block in root.findall('block'):
-            block_key = block.find('key')
+            # block_key = block.find('key')
             # print('block_key: %s' % block_key.text)
             for param in block.findall("param"):
                 param_val = param.find("value")
@@ -256,7 +249,6 @@ class RadioProgramCombiner():
             snk_block_id = conn.find("sink_block_id")
             if snk_block_id.text is not None:
                 snk_block_id.text = snk_block_id.text.replace(old_id, new_id)
-
 
     def _copy_usrp_src_cfg(self, root, proto_vars):
 
@@ -285,9 +277,9 @@ class RadioProgramCombiner():
 
         return usrp_src_dict
 
+
 if __name__ == '__main__':
 
-    #gr_radio_programs_path = os.path.join(os.path.expanduser("~"), ".wishful", "radio")
     gr_radio_programs_path = "../testdata/"
 
     combiner = RadioProgramCombiner(gr_radio_programs_path)
