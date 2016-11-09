@@ -16,7 +16,7 @@ if __name__ == '__main__':
         for rp in rps:
             fid = open(os.path.join(os.path.expanduser("."), "testdata", rp + ".grc"))
             grc_xml = fid.read()
-            #print(grc_xml)
+            # print(grc_xml)
 
             inval = {}
             inval['grc_radio_program_name'] = rp
@@ -58,6 +58,5 @@ if __name__ == '__main__':
             inval['grc_radio_program_name'] = rp
             grm.remove_program(**inval)
 
-
-    #grm.set_active(**inval)
-    #grm.set_inactive(**tvals)
+    # grm.set_active(**inval)
+    # grm.set_inactive(**tvals)

@@ -12,7 +12,7 @@ if __name__ == '__main__':
     fid = open(os.path.join(os.path.expanduser("."), "testdata", "testgrc.grc"))
     grc_xml = fid.read()
 
-    #print(grc_xml)
+    # print(grc_xml)
 
     inval = {}
     inval['ID'] = 11

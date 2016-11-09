@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
-import os
 import time
 import xmlrpc.client
 import subprocess
 
 '''
-    Run-time control of meta radio program which allows very fast switching from
+    Run-time control of meta radio program
+    which allows very fast switching from
     one protocol to another:
     - context switching
 '''
