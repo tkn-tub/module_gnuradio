@@ -44,8 +44,7 @@ class RadioProgramState(Enum):
 """
     Basic GNURadio connector module.
 """
-@modules.build_module
-class GnuRadioModule(modules.AgentModule):
+class GnuRadioModule(modules.DeviceModule):
     def __init__(self):
         super(GnuRadioModule, self).__init__()
 
