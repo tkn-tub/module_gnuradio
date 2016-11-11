@@ -8,10 +8,10 @@ from numpy import log10
 import xmlrpc.client
 import xml.etree.ElementTree as ET
 
-import wishful_upis as upis
+from generator.rp_combiner import RadioProgramCombiner
+
 from uniflex.core import modules
 
-from generator.rp_combiner import RadioProgramCombiner
 
 # GLOBAL VARIABLES DEFINITION
 
@@ -69,7 +69,6 @@ class GnuRadioModule(modules.DeviceModule):
         self.log.debug('initialized ...')
 
 
-    @modules.bind_function(upis.radio.add_program)
     def add_program(self, **kwargs):
         """ Serialize radio program to local repository """
 
@@ -88,8 +87,6 @@ class GnuRadioModule(modules.DeviceModule):
         # rebuild radio program dictionary
         self.build_radio_program_dict()
 
-
-    @modules.bind_function(upis.radio.merge_programs)
     def merge_programs(self, **kwargs):
         '''
             Given a set of Gnuradio programs (described as GRC flowgraph) this program combines all
@@ -117,8 +114,6 @@ class GnuRadioModule(modules.DeviceModule):
 
         return rp_fname
 
-
-    @modules.bind_function(upis.radio.switch_program)
     def switch_program(self, target_program_name, **kwargs):
         '''
             Run-time control of meta radio program which allows very fast switching from
@@ -150,8 +145,6 @@ class GnuRadioModule(modules.DeviceModule):
         self.log.info('Switch to protocol %d with cfg %s' % (new_proto_idx, str(init_session_value)))
         getattr(proxy, "set_session_var")(init_session_value)
 
-
-    @modules.bind_function(upis.radio.remove_program)
     def remove_program(self, **kwargs):
         """ Remove radio program from local repository """
 
@@ -162,8 +155,6 @@ class GnuRadioModule(modules.DeviceModule):
             os.rmdir(os.path.join(self.gr_radio_programs_path, grc_radio_program_name))
             os.remove(os.path.join(self.gr_radio_programs_path, grc_radio_program_name + '.grc'))
 
-
-    @modules.bind_function(upis.radio.set_active)
     def set_active(self, **kwargs):
 
         # params
@@ -208,11 +199,9 @@ class GnuRadioModule(modules.DeviceModule):
         else:
             self.log.warn('Please deactive old radio program before activating a new one.')
 
-
-    @modules.bind_function(upis.radio.set_inactive)
     def set_inactive(self, **kwargs):
 
-        pause_rp =  bool(kwargs['do_pause'])
+        pause_rp = bool(kwargs['do_pause'])
 
         if self.gr_state == RadioProgramState.RUNNING or self.gr_state == RadioProgramState.PAUSED:
 
@@ -239,8 +228,6 @@ class GnuRadioModule(modules.DeviceModule):
         else:
             self.log.warn("no running or paused radio program; ignore command")
 
-
-    @modules.bind_function(upis.radio.set_parameter_lower_layer)
     def gnuradio_set_vars(self, **kwargs):
         if self.gr_state == RadioProgramState.RUNNING or self.gr_state == RadioProgramState.PAUSED:
             self.init_proxy()
@@ -252,8 +239,6 @@ class GnuRadioModule(modules.DeviceModule):
         else:
             self.log.warn("no running or paused radio program; ignore command")
 
-
-    @modules.bind_function(upis.radio.get_parameter_lower_layer)
     def gnuradio_get_vars(self, **kwargs):
         if self.gr_state == RadioProgramState.RUNNING or self.gr_state == RadioProgramState.PAUSED:
             rv = {}
@@ -320,10 +305,7 @@ class SecureGnuRadioModule(GnuRadioModule):
         super(SecureGnuRadioModule, self).__init__()
         self.log = logging.getLogger('SecureGnuRadioModule')
 
-
-    @modules.bind_function(upis.radio.set_active)
     def set_active(self, **kwargs):
-
         grc_radio_program_name = kwargs['grc_radio_program_name']
         tree = ET.ElementTree(file = os.path.join(os.path.expanduser("."), "testdata", grc_radio_program_name + '.grc'))
         root = tree.getroot()
@@ -383,17 +365,10 @@ class SecureGnuRadioModule(GnuRadioModule):
         else:
             self.log.warn('ERROR: Frequency and/or Power in UHD_USRP_SOURCE block not allowed')
 
-
-
-    @modules.bind_function(upis.radio.set_inactive)
     def set_inactive(self, **kwargs):
+        # TO COMPLETE
         pass
-     #TO COMPLETE
 
-
-
-
-    @modules.bind_function(upis.radio.set_parameter_lower_layer)
     def gnuradio_set_vars(self, **kwargs):
 
         if self.gr_state == RadioProgramState.RUNNING or self.gr_state == RadioProgramState.PAUSED:
@@ -424,7 +399,6 @@ class SecureGnuRadioModule(GnuRadioModule):
             self.log.warn("no running or paused radio program; ignore command")
             return None
 
-    @modules.bind_function(upis.radio.get_parameter_lower_layer)
     def gnuradio_get_vars(self, **kwargs):
         gvals={}
         if self.gr_state == RadioProgramState.RUNNING or self.gr_state == RadioProgramState.PAUSED:
@@ -451,17 +425,14 @@ class SecureGnuRadioModule(GnuRadioModule):
                                 if param.findtext('key') == 'gain%s' % x and param.findtext('value') != '0':
                                     uhd_gain_source = float(param.findtext('value'))
                 except Exception as e:
-                    self.log.error("Unknown variable '%s -> %s'" %(k,e))
+                    self.log.error("Unknown variable '%s -> %s'" % (k, e))
 
-            gvals['frequency_sink']=frequency_sink
-            gvals['uhd_gain_sink']=uhd_gain_sink
-            gvals['frequency_source']=frequency_source
-            gvals['uhd_gain_source']=uhd_gain_source
+            gvals['frequency_sink'] = frequency_sink
+            gvals['uhd_gain_sink'] = uhd_gain_sink
+            gvals['frequency_source'] = frequency_source
+            gvals['uhd_gain_source'] = uhd_gain_source
             return gvals
 
         else:
             self.log.warn("no running or paused radio program; ignore command")
             return None
-
-
-
