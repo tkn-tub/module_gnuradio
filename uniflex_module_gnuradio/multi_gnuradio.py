@@ -16,8 +16,8 @@ __email__ = "{zubow}@tkn.tu-berlin.de"
     2/ Call switch_radio_program() for fast switching between RPs at runtime
 """
 class MultiGnuRadioModule(GnuRadioModule):
-    def __init__(self):
-        super(MultiGnuRadioModule, self).__init__()
+    def __init__(self, ctrl_socket_host="localhost", ctrl_socket_port=8080):
+        super(MultiGnuRadioModule, self).__init__(ctrl_socket_host, ctrl_socket_port)
 
         self.log = logging.getLogger('MultiGnuRadioModule')
 

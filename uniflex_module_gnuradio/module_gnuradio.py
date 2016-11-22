@@ -34,7 +34,7 @@ class RadioProgramState(Enum):
     - set_parameters/get_parameters: generic getter/setter functions to control GnuRadio RP at runtime
 """
 class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
-    def __init__(self):
+    def __init__(self, ctrl_socket_host="localhost", ctrl_socket_port=8080):
         super(GnuRadioModule, self).__init__()
 
         self.log = logging.getLogger('GnuRadioModule')
@@ -48,8 +48,8 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
             self._build_radio_program_dict()
 
         # config values
-        self.ctrl_socket_host = "localhost"
-        self.ctrl_socket_port = 8080
+        self.ctrl_socket_host = ctrl_socket_host
+        self.ctrl_socket_port = ctrl_socket_port
         self.ctrl_socket = None
 
         self.gr_state = RadioProgramState.INACTIVE
