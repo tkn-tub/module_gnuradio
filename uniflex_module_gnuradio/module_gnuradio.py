@@ -32,6 +32,8 @@ class RadioProgramState(Enum):
     - activate_radio_program: pass name of RP and the flowgraph as XML GRC file
     - deactivate_radio_program: stop or pause RP
     - set_parameters/get_parameters: generic getter/setter functions to control GnuRadio RP at runtime
+
+    TODO: pass init parameters as parameters to python file; see gr802.11 as an example.
 """
 class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
     def __init__(self, ctrl_socket_host="localhost", ctrl_socket_port=8080):
