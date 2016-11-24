@@ -19,11 +19,8 @@ if __name__ == '__main__':
     # print(grc_xml)
 
     grc_radio_program_name = 'test'
-    inval = {}
-    inval['ID'] = 11
-    inval['grc_radio_program_code'] = grc_xml
 
-    grm.activate_radio_program(grc_radio_program_name, **inval)
+    grm.activate_radio_program(grc_radio_program_name, grc_xml)
 
     time.sleep(2)
     if True:
@@ -34,6 +31,4 @@ if __name__ == '__main__':
             res = grm.get_parameters(gvals)
             print(res)
 
-    tvals = {}
-    tvals['do_pause'] = str(True)
-    grm.deactivate_radio_program(grc_radio_program_name, **tvals)
+    grm.deactivate_radio_program(grc_radio_program_name, False)

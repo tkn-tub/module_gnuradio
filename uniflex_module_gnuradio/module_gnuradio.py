@@ -1,5 +1,6 @@
 import os
 import pprint
+import inspect
 import logging
 import subprocess
 from enum import Enum
@@ -10,12 +11,13 @@ import xml.etree.ElementTree as ET
 
 from uniflex.core import modules
 from sbi.radio_device.net_device import RadioNetDevice
-
+from uniflex.core import exceptions
 
 __author__ = "Anatolij Zubow"
 __copyright__ = "Copyright (c) 2015, Technische Universität Berlin"
 __version__ = "0.1.0"
 __email__ = "{zubow}@tkn.tu-berlin.de"
+
 
 """ tracking the state of the radio program """
 class RadioProgramState(Enum):
@@ -59,8 +61,13 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
         self.log.debug('initialized ...')
 
 
-    def activate_radio_program(self, grc_radio_program_name, **kwargs):
-        """ API call """
+    def activate_radio_program(self, grc_radio_program_name, grc_program, iface=None):
+        """
+        Activates and starts a GNURadio program.
+        :param grc_radio_program_name: name of the radio program to be activated; used for caching
+        :param grc_program: the GRC XML radio program
+        :return: True in case it was successful
+        """
 
         if self.gr_state == RadioProgramState.INACTIVE:
             self.log.info("Start new radio program")
@@ -69,7 +76,7 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
             """Launches Gnuradio in background"""
             if self.gr_radio_programs is None or grc_radio_program_name not in self.gr_radio_programs:
                 # serialize radio program to local repository
-               self._add_radio_program(grc_radio_program_name, kwargs['grc_radio_program_code'])
+               self._add_radio_program(grc_radio_program_name, grc_program)
             if self.gr_process_io is None:
                 self.gr_process_io = {'stdout': open('/tmp/gnuradio.log', 'w+'), 'stderr': open('/tmp/gnuradio-err.log', 'w+')}
             if grc_radio_program_name not in self.gr_radio_programs:
@@ -101,14 +108,31 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
         else:
             self.log.warn('Please deactive old radio program before activating a new one.')
 
-    def deactivate_radio_program(self, grc_radio_program_name, **kwargs):
-        """ API call """
 
-        pause_rp = bool(kwargs['do_pause'])
+    def update_radio_program(self, grc_radio_program_name, grc_program, iface=None):
+        """
+        Activates and starts a GNURadio program.
+        :param grc_radio_program_name: name of the radio program to be activated; used for caching
+        :param grc_program: the GRC XML radio program
+        :return: True in case it was successful
+        """
+        self.log.fatal('On the fly updates are not yet supported.')
+        raise exceptions.UnsupportedFunctionException(
+            func_name=inspect.currentframe().f_code.co_name,
+            err_msg='On the fly updates are not yet supported.')
+
+
+    def deactivate_radio_program(self, grc_radio_program_name, do_pause=False):
+        """
+        Deactivates and stops a running GNURadio program.
+        :param grc_radio_program_name: name of the radio program to be activated; used for caching
+        :param do_pause: whether to just pause or to terminate
+        :return: True in case it was successful
+        """
 
         if self.gr_state == RadioProgramState.RUNNING or self.gr_state == RadioProgramState.PAUSED:
 
-            if pause_rp:
+            if do_pause:
                 self.log.info("pausing radio program")
 
                 self._init_proxy()
