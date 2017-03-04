@@ -8,6 +8,7 @@ from numpy import arange
 from numpy import log10
 import xmlrpc.client
 import xml.etree.ElementTree as ET
+import lxml.etree as xmlle
 
 from uniflex.core import modules
 from sbi.radio_device.net_device import RadioNetDevice
@@ -38,7 +39,7 @@ class RadioProgramState(Enum):
     TODO: pass init parameters as parameters to python file; see gr802.11 as an example.
 """
 class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
-    def __init__(self, ctrl_socket_host="localhost", ctrl_socket_port=8080):
+    def __init__(self, usrp_addr="addr=192.168.30.2", ctrl_socket_host="localhost", ctrl_socket_port=8080):
         super(GnuRadioModule, self).__init__()
 
         self.log = logging.getLogger('GnuRadioModule')
@@ -52,6 +53,7 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
             self._build_radio_program_dict()
 
         # config values
+        self.usrp_addr = usrp_addr
         self.ctrl_socket_host = ctrl_socket_host
         self.ctrl_socket_port = ctrl_socket_port
         self.ctrl_socket = None
@@ -61,13 +63,14 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
         self.log.debug('initialized ...')
 
 
-    def activate_radio_program(self, grc_radio_program_name, grc_program, iface=None):
+    def activate_radio_program(self, grc_radio_program_name=None, grc_program=None, iface=None):
         """
         Activates and starts a GNURadio program.
         :param grc_radio_program_name: name of the radio program to be activated; used for caching
         :param grc_program: the GRC XML radio program
         :return: True in case it was successful
         """
+        self.log.info('activate_radio_program: %s' % grc_radio_program_name)
 
         if self.gr_state == RadioProgramState.INACTIVE:
             self.log.info("Start new radio program")
@@ -109,7 +112,7 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
             self.log.warn('Please deactive old radio program before activating a new one.')
 
 
-    def update_radio_program(self, grc_radio_program_name, grc_program, iface=None):
+    def update_radio_program(self, grc_radio_program_name=None, grc_program=None, iface=None):
         """
         Activates and starts a GNURadio program.
         :param grc_radio_program_name: name of the radio program to be activated; used for caching
@@ -122,7 +125,7 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
             err_msg='On the fly updates are not yet supported.')
 
 
-    def deactivate_radio_program(self, grc_radio_program_name, do_pause=False):
+    def deactivate_radio_program(self, grc_radio_program_name=None, do_pause=False):
         """
         Deactivates and stops a running GNURadio program.
         :param grc_radio_program_name: name of the radio program to be activated; used for caching
@@ -198,6 +201,13 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
         fid.write(grc_radio_program_code)
         fid.close()
 
+        # set USRP addr in XML flowgraph
+        self.log.info('Replace usrp_addr variable in grc by %s' % self.usrp_addr)
+        doc = xmlle.parse(os.path.join(self.gr_radio_programs_path, grc_radio_program_name + '.grc'))
+        el_usrp_addr = doc.xpath('/flow_graph/block/key[text()="variable"]/../param/value[text()="usrp_addr"]/../../param/key[text()="value"]/../value')
+        el_usrp_addr[0].text = '"' + self.usrp_addr + '"'
+        doc.write(os.path.join(self.gr_radio_programs_path, grc_radio_program_name + '.grc'))
+
         # rebuild radio program dictionary
         self._build_radio_program_dict()
 
@@ -215,9 +225,14 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
             Converts the radio program XML flowgraphs into executable python scripts
         """
         self.gr_radio_programs = {}
-        grc_files = dict.fromkeys([x.rstrip(".grc") for x in os.listdir(self.gr_radio_programs_path) if x.endswith(".grc")], 0)
-        topblocks = dict.fromkeys(
-            [x for x in os.listdir(self.gr_radio_programs_path) if os.path.isdir(os.path.join(self.gr_radio_programs_path, x))], 0)
+        grc_files = dict.fromkeys([os.path.splitext(x)[0] for x in os.listdir(self.gr_radio_programs_path) if x.endswith(".grc")], 0)
+
+        self.log.info('grc_files: %s' % str(grc_files))
+
+        topblocks = dict.fromkeys([x for x in os.listdir(self.gr_radio_programs_path) if os.path.isdir(os.path.join(self.gr_radio_programs_path, x))], 0)
+
+        self.log.info('topblocks: %s' % str(topblocks))
+
         for x in grc_files.keys():
             grc_files[x] = os.stat(os.path.join(self.gr_radio_programs_path, x + ".grc")).st_mtime
             try:
@@ -225,20 +240,26 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
                 topblocks[x] = 0
             except OSError:
                 pass
+
         for x in topblocks.keys():
-            topblocks[x] = os.stat(os.path.join(self.gr_radio_programs_path, x, 'top_block.py')).st_mtime if os.path.isfile(
-                os.path.join(self.gr_radio_programs_path, x, 'top_block.py')) else 0
+            topblocks[x] = os.stat(os.path.join(self.gr_radio_programs_path, x, x + '.py')).st_mtime if os.path.isfile(
+                os.path.join(self.gr_radio_programs_path, x, x + '.py')) else 0
+
+        self.log.info('topblocks2: %s' % str(topblocks))
+
         for x in grc_files.keys():
             if grc_files[x] > topblocks[x]:
                 outdir = "--directory=%s" % os.path.join(self.gr_radio_programs_path, x)
                 input_grc = os.path.join(self.gr_radio_programs_path, x + ".grc")
+                self.log.info('Input to grc %s' % input_grc)
                 try:
                     subprocess.check_call(["grcc", outdir, input_grc])
-                except:
+                except Exception as inst:
+                    self.log.error('Failed to run grcc %s' % str(inst))
                     pass
         for x in topblocks.keys():
-            if os.path.isfile(os.path.join(self.gr_radio_programs_path, x, 'top_block.py')):
-                self.gr_radio_programs[x] = os.path.join(self.gr_radio_programs_path, x, 'top_block.py')
+            if os.path.isfile(os.path.join(self.gr_radio_programs_path, x, x + '.py')):
+                self.gr_radio_programs[x] = os.path.join(self.gr_radio_programs_path, x, x + '.py')
 
         self.log.info('gr_radio_programs:\n{}'.format(pprint.pformat(self.gr_radio_programs)))
 
