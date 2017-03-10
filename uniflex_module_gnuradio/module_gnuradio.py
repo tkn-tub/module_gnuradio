@@ -1,4 +1,5 @@
 import os
+import sh
 import pprint
 import inspect
 import logging
@@ -81,9 +82,11 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
             self.ctrl_socket = None
 
             """Launches Gnuradio in background"""
-            if self.gr_radio_programs is None or grc_radio_program_name not in self.gr_radio_programs:
+            if grc_radio_program_name not in self.gr_radio_programs:
                 # serialize radio program to local repository
                 self._add_radio_program(grc_radio_program_name, grc_program)
+                # rebuild radio program dictionary
+                self._compile_radio_program(grc_radio_program_name)
 
             if self.gr_process_io is None:
                 self.gr_process_io = {'stdout': open('/tmp/gnuradio.log', 'w+'), 'stderr': open('/tmp/gnuradio-err.log', 'w+')}
@@ -220,9 +223,6 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
         el_usrp_addr[0].text = '"' + self.usrp_addr + '"'
         doc.write(os.path.join(self.gr_radio_programs_path, grc_radio_program_name + '.grc'))
 
-        # rebuild radio program dictionary
-        self._build_radio_program_dict()
-
     def _remove_radio_program(self, grc_radio_program_name):
         """ API call: Remove radio program from local repository """
 
@@ -231,7 +231,17 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
             os.rmdir(os.path.join(self.gr_radio_programs_path, grc_radio_program_name))
             os.remove(os.path.join(self.gr_radio_programs_path, grc_radio_program_name + '.grc'))
 
-    def _build_radio_program_dict(self):
+    def _compile_radio_program(self, grc_radio_program_name):
+        grProgramPath = os.path.join(self.gr_radio_programs_path, grc_radio_program_name + '.grc')
+        outdir = "--directory=%s" % os.path.join(self.gr_radio_programs_path)
+        print(grProgramPath)
+        try:
+            sh.grcc(outdir, grProgramPath)
+        except Exception as e:
+            raise
+        self.log.info("Compilation Completed")
+
+    def _build_radio_program_dict(self, grc_radio_program_name=None):
         """
             Converts the radio program XML flowgraphs
             into executable python scripts
