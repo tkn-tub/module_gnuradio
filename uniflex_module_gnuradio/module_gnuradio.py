@@ -231,8 +231,9 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
 
     def _compile_radio_program(self, grc_radio_program_name):
         grProgramPath = os.path.join(self.gr_radio_programs_path, grc_radio_program_name + '.grc')
-        outdir = "--directory=%s" % os.path.join(self.gr_radio_programs_path)
+        outdir = "--directory=%s" % self.gr_radio_programs_path
         print(grProgramPath)
+        print(outdir)
         try:
             sh.grcc(outdir, grProgramPath)
         except Exception as e:
