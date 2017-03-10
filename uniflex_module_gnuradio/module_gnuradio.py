@@ -4,10 +4,7 @@ import inspect
 import logging
 import subprocess
 from enum import Enum
-from numpy import arange
-from numpy import log10
 import xmlrpc.client
-import xml.etree.ElementTree as ET
 import lxml.etree as xmlle
 
 from uniflex.core import modules
@@ -26,7 +23,6 @@ class RadioProgramState(Enum):
     RUNNING = 2
     PAUSED = 3
     STOPPED = 4
-
 
 """
     Basic GNURadio connector module.
