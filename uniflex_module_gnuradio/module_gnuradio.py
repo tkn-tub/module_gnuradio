@@ -24,18 +24,25 @@ class RadioProgramState(Enum):
     PAUSED = 3
     STOPPED = 4
 
-"""
-    Basic GNURadio connector module.
 
-    Supported functionality:
-    - activate_radio_program: pass name of RP and the flowgraph as XML GRC file
-    - deactivate_radio_program: stop or pause RP
-    - set_parameters/get_parameters: generic getter/setter functions to control GnuRadio RP at runtime
-
-    TODO: pass init parameters as parameters to python file; see gr802.11 as an example.
-"""
 class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
-    def __init__(self, usrp_addr="addr=192.168.30.2", ctrl_socket_host="localhost", ctrl_socket_port=8080):
+    """
+        Basic GNURadio connector module.
+
+        Supported functionality:
+        - activate_radio_program: pass name of RP and the flowgraph
+                                  as XML GRC file
+        - deactivate_radio_program: stop or pause RP
+        - set_parameters/get_parameters: generic getter/setter functions to
+                                         control GnuRadio RP at runtime
+
+        TODO: pass init parameters as parameters to python file;
+              see gr802.11 as an example.
+    """
+
+    def __init__(self, usrp_addr="addr=192.168.30.2",
+                 ctrl_socket_host="localhost",
+                 ctrl_socket_port=8080):
         super(GnuRadioModule, self).__init__()
 
         self.log = logging.getLogger('GnuRadioModule')
@@ -58,11 +65,12 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
 
         self.log.debug('initialized ...')
 
-
-    def activate_radio_program(self, grc_radio_program_name=None, grc_program=None, iface=None):
+    def activate_radio_program(self, grc_radio_program_name=None,
+                               grc_program=None, iface=None):
         """
         Activates and starts a GNURadio program.
-        :param grc_radio_program_name: name of the radio program to be activated; used for caching
+        :param grc_radio_program_name: name of the radio program to
+                                       be activated; used for caching
         :param grc_program: the GRC XML radio program
         :return: True in case it was successful
         """
@@ -75,16 +83,20 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
             """Launches Gnuradio in background"""
             if self.gr_radio_programs is None or grc_radio_program_name not in self.gr_radio_programs:
                 # serialize radio program to local repository
-               self._add_radio_program(grc_radio_program_name, grc_program)
+                self._add_radio_program(grc_radio_program_name, grc_program)
+
             if self.gr_process_io is None:
                 self.gr_process_io = {'stdout': open('/tmp/gnuradio.log', 'w+'), 'stderr': open('/tmp/gnuradio-err.log', 'w+')}
+
             if grc_radio_program_name not in self.gr_radio_programs:
                 self.log.error("Available layers: %s" % ", ".join(self.gr_radio_programs.keys()))
                 raise AttributeError("Unknown radio program %s" % grc_radio_program_name)
+
             if self.gr_process is not None:
                 # An instance is already running
                 self.gr_process.kill()
                 self.gr_process = None
+
             try:
                 # start GNURadio process
                 self.gr_radio_program_name = grc_radio_program_name
@@ -107,11 +119,12 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
         else:
             self.log.warn('Please deactive old radio program before activating a new one.')
 
-
-    def update_radio_program(self, grc_radio_program_name=None, grc_program=None, iface=None):
+    def update_radio_program(self, grc_radio_program_name=None,
+                             grc_program=None, iface=None):
         """
         Activates and starts a GNURadio program.
-        :param grc_radio_program_name: name of the radio program to be activated; used for caching
+        :param grc_radio_program_name: name of the radio program
+                                       to be activated; used for caching
         :param grc_program: the GRC XML radio program
         :return: True in case it was successful
         """
@@ -120,11 +133,12 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
             func_name=inspect.currentframe().f_code.co_name,
             err_msg='On the fly updates are not yet supported.')
 
-
-    def deactivate_radio_program(self, grc_radio_program_name=None, do_pause=False):
+    def deactivate_radio_program(self, grc_radio_program_name=None,
+                                 do_pause=False):
         """
         Deactivates and stops a running GNURadio program.
-        :param grc_radio_program_name: name of the radio program to be activated; used for caching
+        :param grc_radio_program_name: name of the radio program
+                                       to be activated; used for caching
         :param do_pause: whether to just pause or to terminate
         :return: True in case it was successful
         """
@@ -144,9 +158,10 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
 
                 if self.gr_process is not None and hasattr(self.gr_process, "kill"):
                     self.gr_process.kill()
+
                 if self.gr_process_io is not None and self.gr_process_io is dict:
                     for k in self.gr_process_io.keys():
-                        #if self.gr_process_io[k] is file and not self.gr_process_io[k].closed:
+                        # if self.gr_process_io[k] is file and not self.gr_process_io[k].closed:
                         if not self.gr_process_io[k].closed:
                             self.gr_process_io[k].close()
                             self.gr_process_io[k] = None
@@ -187,7 +202,8 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
 
     """ Helper functions """
 
-    def _add_radio_program(self, grc_radio_program_name, grc_radio_program_code):
+    def _add_radio_program(self, grc_radio_program_name,
+                           grc_radio_program_code):
         """ API call: Serialize radio program to local repository """
 
         self.log.info("Add radio program %s to local repository" % grc_radio_program_name)
@@ -215,10 +231,10 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
             os.rmdir(os.path.join(self.gr_radio_programs_path, grc_radio_program_name))
             os.remove(os.path.join(self.gr_radio_programs_path, grc_radio_program_name + '.grc'))
 
-
     def _build_radio_program_dict(self):
         """
-            Converts the radio program XML flowgraphs into executable python scripts
+            Converts the radio program XML flowgraphs
+            into executable python scripts
         """
         self.gr_radio_programs = {}
         grc_files = dict.fromkeys([os.path.splitext(x)[0] for x in os.listdir(self.gr_radio_programs_path) if x.endswith(".grc")], 0)
@@ -253,6 +269,7 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
                 except Exception as inst:
                     self.log.error('Failed to run grcc %s' % str(inst))
                     pass
+
         for x in topblocks.keys():
             if os.path.isfile(os.path.join(self.gr_radio_programs_path, x, x + '.py')):
                 self.gr_radio_programs[x] = os.path.join(self.gr_radio_programs_path, x, x + '.py')
