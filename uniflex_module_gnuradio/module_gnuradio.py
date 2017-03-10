@@ -91,10 +91,6 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
             if self.gr_process_io is None:
                 self.gr_process_io = {'stdout': open('/tmp/gnuradio.log', 'w+'), 'stderr': open('/tmp/gnuradio-err.log', 'w+')}
 
-            if grc_radio_program_name not in self.gr_radio_programs:
-                self.log.error("Available layers: %s" % ", ".join(self.gr_radio_programs.keys()))
-                raise AttributeError("Unknown radio program %s" % grc_radio_program_name)
-
             if self.gr_process is not None:
                 # An instance is already running
                 self.gr_process.kill()
@@ -102,8 +98,9 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
 
             try:
                 # start GNURadio process
+                pyRadioProgPath = os.path.join(self.gr_radio_programs_path, grc_radio_program_name + '.py')
                 self.gr_radio_program_name = grc_radio_program_name
-                self.gr_process = subprocess.Popen(["env", "python2", self.gr_radio_programs[grc_radio_program_name]],
+                self.gr_process = subprocess.Popen(["env", "python2", pyRadioProgPath],
                                                    stdout=self.gr_process_io['stdout'], stderr=self.gr_process_io['stderr'])
                 self.gr_state = RadioProgramState.RUNNING
             except OSError:
