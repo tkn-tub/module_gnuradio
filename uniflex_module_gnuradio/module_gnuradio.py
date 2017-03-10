@@ -99,6 +99,7 @@ class GnuRadioModule(modules.DeviceModule, RadioNetDevice):
             try:
                 # start GNURadio process
                 pyRadioProgPath = os.path.join(self.gr_radio_programs_path, grc_radio_program_name + '.py')
+                self.log.info("Start radio program: {}".format(pyRadioProgPath))
                 self.gr_radio_program_name = grc_radio_program_name
                 self.gr_process = subprocess.Popen(["env", "python2", pyRadioProgPath],
                                                    stdout=self.gr_process_io['stdout'], stderr=self.gr_process_io['stderr'])
